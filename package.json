@@ -1,0 +1,21 @@
+{
+  "name": "stl",
+  "version": "0.0.1",
+  "description": "STL to Array of verts and vice versa",
+  "main": "stl.js",
+  "scripts": {
+    "test": "node test/test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/tmpvar/stl.git"
+  },
+  "keywords": [
+    "stl",
+    "3d",
+    "stereolithography"
+  ],
+  "author": "Elijah Insua <tmpvar@gmail.com>",
+  "license": "MIT",
+  "readmeFilename": "README.md"
+}
