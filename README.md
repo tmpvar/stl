@@ -33,7 +33,7 @@ fs.writeFileSync('/path/to/binary.stl', stl.fromObject(facets, true));
 
 ```
 
-## array structure
+## Object Structure
 
 `toObject` and `fromObject` use the following array structure
 
