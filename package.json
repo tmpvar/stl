@@ -17,5 +17,9 @@
   ],
   "author": "Elijah Insua <tmpvar@gmail.com>",
   "license": "MIT",
-  "readmeFilename": "README.md"
+  "readmeFilename": "README.md",
+  "dependencies": {
+    "stream-fsm": "~0.1.0",
+    "split": "~0.2.10"
+  }
 }
