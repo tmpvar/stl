@@ -1,6 +1,6 @@
 {
   "name": "stl",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "STL to Array of verts and vice versa",
   "main": "stl.js",
   "scripts": {
@@ -13,13 +13,15 @@
   "keywords": [
     "stl",
     "3d",
-    "stereolithography"
+    "stereolithography",
+    "parser",
+    "stream"
   ],
   "author": "Elijah Insua <tmpvar@gmail.com>",
   "license": "MIT",
   "readmeFilename": "README.md",
   "dependencies": {
-    "stream-fsm": "~0.1.0",
+    "stream-fsm": "~0.2.0",
     "split": "~0.2.10"
   }
 }

@@ -1,3 +1,7 @@
+var fsm = require('stream-fsm');
+var split = require('split');
+var Transform = require('stream').Transform;
+
 module.exports = {
 
   // `stl` may be binary or ascii
@@ -143,5 +147,136 @@ module.exports = {
       });
       return ret;
     }
+  },
+
+  createParseStream : function() {
+    var binaryMode = false;
+    var facetCount = 0;
+    var facets = [];
+    var destription = '';
+    var currentFacet;
+    var ended = false;
+
+    var stream = fsm({
+      init : fsm.want(80, function readBinaryHeader(data) {
+        if (data.toString().toLowerCase().indexOf('solid') > -1) {
+          this.change('ascii');
+          return 0;
+        } else {
+          description = data.toString();
+          this.change('count')
+        }
+      }),
+
+      count : fsm.want(4, function(data) {
+        facetCount = data.readUInt32LE(0);
+
+        this.queue({
+          description : description,
+          facetCount: facetCount
+        });
+
+        this.change('normal');
+      }),
+
+      normal : fsm.want(12, function(data) {
+        currentFacet = {
+          normal : [
+            data.readFloatLE(0),
+            data.readFloatLE(4),
+            data.readFloatLE(8)
+          ],
+          verts : []
+        };
+
+        this.change('verts');
+      }),
+
+      verts : fsm.want(36, function(data) {
+
+        for (var i=0; i<36; i+=12) {
+          currentFacet.verts.push([
+            data.readFloatLE(i),
+            data.readFloatLE(i+4),
+            data.readFloatLE(i+8)
+          ]);
+        }
+
+        this.change('attributeBytes');
+      }),
+
+      attributeBytes : fsm.want(2, function(data) {
+        currentFacet.attributeByteCount = data.readUInt16LE(0);
+        this.queue(currentFacet);
+
+        currentFacet = null;
+        facetCount--;
+
+        if (facetCount <= 0) {
+          this.done();
+        } else {
+          this.change('normal');
+        }
+
+      }),
+
+      ascii : function(pending) {
+        var splitter = split();
+
+        stream.on('end', function() {
+          splitter.end();
+        });
+
+        var inFacet = false;
+        var facet;
+        splitter.on('data', function(data) {
+          if (data.indexOf('solid') > -1) {
+            stream.queue({
+              description : data.trim().split(' ').slice(1).join(' ')
+            });
+
+          } else if (data.indexOf('endfacet') > -1) {
+            inFacet = false;
+            stream.queue(facet);
+            facet = null
+          } else if (data.indexOf('facet') > -1) {
+            var normal = data.replace(/ +/g, ' ').trim().split(' ').slice(2).map(function(v) {
+              return parseFloat(v);
+            });
+
+            facet = {
+              normal : normal,
+              verts : []
+            };
+
+          } else if (data.indexOf('vertex') > -1) {
+            var coords = data.replace(/ +/g, ' ').trim().split(' ').slice(1).map(function(v) {
+              return parseFloat(v);
+            });
+            facet.verts.push(coords);
+          }
+        });
+
+
+        stream.write = function (data) {
+          splitter.write(data);
+          return !stream.paused
+        };
+
+
+        stream.write(pending);
+        ended && stream.end();
+        return pending.length;
+      }
+
+    }, function() {
+
+    });
+
+    stream.on('end', function() {
+      ended = true;
+    });
+
+    return stream;
   }
 };

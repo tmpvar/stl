@@ -20,6 +20,8 @@ var asciiSTL = fs.readFileSync(__dirname + '/ascii/teapot.stl').toString();
 
 // ASCII
 var array = stl.toObject(asciiSTL);
+var basicarray = stl.toObject(basicAsciiSTL);
+
 var string = stl.fromObject(array);
 compareAscii(string, asciiSTL);
 
@@ -40,5 +42,34 @@ var out = stl.fromObject(
   )
   // binary
 , true);
+
+var binaryResult = { facets : [] };
+fs.createReadStream(__dirname + '/binary/ship.stl')
+  .pipe(stl.createParseStream())
+  .on('data', function(obj) {
+    if (obj.description) {
+      binaryResult.description = obj.description;
+    } else {
+      binaryResult.facets.push(obj);
+    }
+
+  }).on('end', function() {
+    assert.deepEqual(binaryResult, binaryArray);
+  });
+
+
+var asciiResult = { description: null, facets : [] };
+fs.createReadStream(__dirname + '/ascii/tri.stl')
+  .pipe(stl.createParseStream())
+  .on('data', function(obj) {
+    if (obj.description) {
+      asciiResult.description = obj.description;
+    } else {
+      asciiResult.facets.push(obj);
+    }
+
+  }).on('end', function() {
+    assert.deepEqual(asciiResult, basicarray);
+  });
 
 assert.deepEqual(binary, binarySTL)

@@ -55,6 +55,29 @@ fs.writeFileSync('/path/to/binary.stl', stl.fromObject(facets, true));
 }
 ```
 
+## Streaming
+
+```
+fs.createReadStream('./test/ascii/tri.stl')
+  .pipe(stl.createParseStream())
+  .on('data', function(object) {
+    /* first object will be:
+
+      { description: "BOLLEN"}
+    */
+
+    /*
+       second object is a facet which looks like:
+
+       {
+        normal: [ 1, 0.5, 0.25 ],
+        verts: [ [ 10, 10, 10 ], [ 4, 4, 4 ], [ 5, 5, 5 ] ]
+       }
+    */
+  })
+
+```
+
 # License
 
 MIT
