@@ -18,6 +18,7 @@ var binarySTL = fs.readFileSync(__dirname + '/binary/ship.stl');
 var basicAsciiSTL = fs.readFileSync(__dirname + '/ascii/tri.stl').toString();
 var asciiSTL = fs.readFileSync(__dirname + '/ascii/teapot.stl').toString();
 
+
 // ASCII
 var array = stl.toObject(asciiSTL);
 var basicarray = stl.toObject(basicAsciiSTL);
@@ -28,9 +29,10 @@ compareAscii(string, asciiSTL);
 // BINARY
 var binaryArray = stl.toObject(binarySTL);
 var binary = stl.fromObject(binaryArray, true);
+var syncSharkResult = stl.toObject(fs.readFileSync(__dirname + '/binary/shark.stl'));
 assert.ok(binarySTL.length === binary.length);
 assert.deepEqual(binary, binarySTL);
-
+/*
 // Convert from binary to ascii back to binary
 var out = stl.fromObject(
   stl.toObject(
@@ -71,5 +73,21 @@ fs.createReadStream(__dirname + '/ascii/tri.stl')
   }).on('end', function() {
     assert.deepEqual(asciiResult, basicarray);
   });
+*/
+
+var sharkResult = { description : null, facets: [] }
+fs.createReadStream(__dirname + '/binary/shark.stl')
+  .pipe(stl.createParseStream())
+  .on('data', function(obj) {
+    if (obj.description) {
+      sharkResult.description = obj.description;
+    } else {
+      sharkResult.facets.push(obj);
+    }
+
+  }).on('end', function() {
+    assert.deepEqual(sharkResult, syncSharkResult);
+  });
+
 
 assert.deepEqual(binary, binarySTL)
