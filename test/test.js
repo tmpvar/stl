@@ -32,7 +32,7 @@ var binary = stl.fromObject(binaryArray, true);
 var syncSharkResult = stl.toObject(fs.readFileSync(__dirname + '/binary/shark.stl'));
 assert.ok(binarySTL.length === binary.length);
 assert.deepEqual(binary, binarySTL);
-/*
+
 // Convert from binary to ascii back to binary
 var out = stl.fromObject(
   stl.toObject(
@@ -73,7 +73,7 @@ fs.createReadStream(__dirname + '/ascii/tri.stl')
   }).on('end', function() {
     assert.deepEqual(asciiResult, basicarray);
   });
-*/
+
 
 var sharkResult = { description : null, facets: [] }
 fs.createReadStream(__dirname + '/binary/shark.stl')

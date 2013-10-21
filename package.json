@@ -1,6 +1,6 @@
 {
   "name": "stl",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "STL to Array of verts and vice versa",
   "main": "stl.js",
   "scripts": {
@@ -21,7 +21,7 @@
   "license": "MIT",
   "readmeFilename": "README.md",
   "dependencies": {
-    "stream-fsm": "~0.2.0",
+    "stream-fsm": "~0.2.2",
     "split": "~0.2.10"
   }
 }

@@ -56,6 +56,11 @@ module.exports = {
       var facets = [];
       var count = stl.readUInt32LE(80);
       ret.description = stl.slice(0, 80).toString();
+      var nullTerm = ret.description.indexOf('\u0000');
+      if (nullTerm > -1) {
+        ret.description = ret.description.substr(0, nullTerm-1);
+      }
+
       var offset = 84;
 
       var float = function() {
@@ -71,9 +76,10 @@ module.exports = {
             [float(), float(), float()],
             [float(), float(), float()],
             [float(), float(), float()]
-          ]
+          ],
+          attributeByteCount : stl.readUInt16LE(offset)
         });
-        facets[i].attributeByteCount = stl.readUInt16LE(offset);
+
         offset+=2; // Clear off the attribute byte count
       }
     }
@@ -164,13 +170,16 @@ module.exports = {
           return 0;
         } else {
           description = data.toString();
+          var nullTerm = description.indexOf('\u0000');
+          if (nullTerm > -1) {
+            description = description.substr(0, nullTerm-1);
+          }
           this.change('count')
         }
       }),
 
       count : fsm.want(4, function(data) {
         facetCount = data.readUInt32LE(0);
-
         this.queue({
           description : description,
           facetCount: facetCount
