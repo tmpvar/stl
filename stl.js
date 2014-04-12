@@ -2,64 +2,76 @@ var fsm = require('stream-fsm');
 var split = require('split');
 var Transform = require('stream').Transform;
 
+var trim = function(a) {
+  var nullTerm = a.indexOf('\u0000');
+  if (nullTerm > -1) {
+    a = a.substr(0, nullTerm-1);
+  }
+  return a.trim();
+};
+
 module.exports = {
 
   // `stl` may be binary or ascii
   toObject : function(stl) {
-    var ret = {
-      description: ''
-    };
+    var ret = {};
 
     var facets = [];
+    var binary = false;
+    var count = 0;
+    if (stl.readUInt32LE) {
+      count = stl.readUInt32LE(80);
+      binary = (84 + count*12*4 + count*2) === stl.length;
+    }
 
-    // ASCII mode
-    if (stl.indexOf && stl.indexOf('solid') > -1) {
-      stl = stl.replace(/\t/g, ' ').replace(/  /g, ' ');
+    if (!binary) {
+      var stlString = stl.toString();
+      if (stlString.indexOf && stlString.indexOf('solid') > -1) {
+        stlString = stlString.replace(/\t/g, ' ');
 
-      var lines = stl.split('\n');
-      var facet, loop;
+        var lines = stlString.split('\n');
+        var facet, loop;
 
-      lines.forEach(function(line) {
-        line = line.replace(/ *$/,'');
+        lines.forEach(function(line) {
+          line = line.trim();
 
-        if (line.indexOf('solid') > -1 && line.indexOf('endsolid') < 0) {
-          ret.description = line.replace(/ *solid */,'');
-        }
+          if (line.indexOf('solid') > -1 && line.indexOf('endsolid') < 0) {
+            ret.description = trim(line.replace(/ *solid */,''));
+          } else {
+            line = line.replace(/  /g, ' ');
+          }
 
-        if (line.indexOf('endfacet') > -1) {
-          facets.push(facet);
-        } else if (line.indexOf('facet') > -1) {
-          facet = {
-            normal : [],
-            verts : []
-          };
-        }
 
-        if (line.indexOf('normal') > -1) {
-          var parts = line.split(' ');
-          facet.normal.unshift(parseFloat(parts.pop()));
-          facet.normal.unshift(parseFloat(parts.pop()));
-          facet.normal.unshift(parseFloat(parts.pop()));
-        }
+          if (line.indexOf('endfacet') > -1) {
+            facets.push(facet);
+          } else if (line.indexOf('facet') > -1) {
+            facet = {
+              normal : [],
+              verts : [],
+              attributeByteCount : 0
+            };
+          }
 
-        if (line.indexOf('vertex') > -1) {
-          var parts = line.split(' ');
-          var vert = [];
-          vert.unshift(parseFloat(parts.pop()));
-          vert.unshift(parseFloat(parts.pop()));
-          vert.unshift(parseFloat(parts.pop()));
-          facet.verts.push(vert);
-        }
-      });
+          if (line.indexOf('normal') > -1) {
+            var parts = line.split(' ');
+            facet.normal.unshift(parseFloat(parts.pop()));
+            facet.normal.unshift(parseFloat(parts.pop()));
+            facet.normal.unshift(parseFloat(parts.pop()));
+          }
+
+          if (line.indexOf('vertex') > -1) {
+            var parts = line.split(' ');
+            var vert = [];
+            vert.unshift(parseFloat(parts.pop()));
+            vert.unshift(parseFloat(parts.pop()));
+            vert.unshift(parseFloat(parts.pop()));
+            facet.verts.push(vert);
+          }
+        });
+      }
     // Binary mode
     } else {
-      var facets = [];
-      var count = stl.readUInt32LE(80);
-      ret.description = stl.slice(0, 80).toString();
-      var nullTerm = ret.description.indexOf('\u0000');
-      if (nullTerm > -1) {
-        ret.description = ret.description.substr(0, nullTerm-1);
-      }
+      ret.description = trim(stl.toString('ascii', 0, 80));
 
       var offset = 84;
 
@@ -95,7 +107,7 @@ module.exports = {
 
     if (!binary) {
       var str = [
-        'solid'
+        'solid ' + obj.description.trim()
       ];
 
       obj.facets.forEach(function(facet) {
@@ -184,6 +196,9 @@ module.exports = {
         if (nullTerm > -1) {
           description = description.substr(0, nullTerm-1);
         }
+
+        description = description.trim();
+
         this.change('count');
       }),
 
@@ -271,7 +286,8 @@ module.exports = {
 
             facet = {
               normal : normal,
-              verts : []
+              verts : [],
+              attributeByteCount: 0
             };
 
           } else if (data.indexOf('vertex') > -1) {

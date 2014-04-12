@@ -30,9 +30,10 @@ compareAscii(string, asciiSTL);
 var binaryArray = stl.toObject(binarySTL);
 var binary = stl.fromObject(binaryArray, true);
 var syncSharkResult = stl.toObject(fs.readFileSync(__dirname + '/binary/shark.stl'));
+var cubeBuffer = fs.readFileSync(__dirname + '/binary/cube-20mm-with-hole.stl');
 
 assert.ok(binarySTL.length === binary.length);
-assert.deepEqual(binary, binarySTL);
+assert.deepEqual(binary.slice(80), binarySTL.slice(80));
 
 // Convert from binary to ascii back to binary
 var out = stl.fromObject(
@@ -59,6 +60,16 @@ fs.createReadStream(__dirname + '/binary/cube-20mm-with-hole.stl')
   }).on('end', function() {
     assert.equal(cubeResult.description.trim(), 'solid cube-20-5mm-wall    facet');
     assert.equal(cubeResult.facets.length, 32);
+
+    var bufferToObjectToStringToObject =  stl.toObject(
+      stl.fromObject(
+        stl.toObject(cubeBuffer), false
+      )
+    );
+
+    var cubeJSON = JSON.stringify(cubeResult);
+    assert.equal(cubeJSON, JSON.stringify(stl.toObject(cubeBuffer)));
+    assert.equal(cubeJSON, JSON.stringify(bufferToObjectToStringToObject));
   });
 
 
@@ -106,5 +117,3 @@ fs.createReadStream(__dirname + '/binary/shark.stl')
     assert.deepEqual(sharkResult, syncSharkResult);
   });
 
-
-assert.deepEqual(binary, binarySTL)
