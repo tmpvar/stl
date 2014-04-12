@@ -30,6 +30,7 @@ compareAscii(string, asciiSTL);
 var binaryArray = stl.toObject(binarySTL);
 var binary = stl.fromObject(binaryArray, true);
 var syncSharkResult = stl.toObject(fs.readFileSync(__dirname + '/binary/shark.stl'));
+
 assert.ok(binarySTL.length === binary.length);
 assert.deepEqual(binary, binarySTL);
 
@@ -45,6 +46,22 @@ var out = stl.fromObject(
   // binary
 , true);
 
+var cubeResult = { description : null, facets: [] }
+fs.createReadStream(__dirname + '/binary/cube-20mm-with-hole.stl')
+  .pipe(stl.createParseStream())
+  .on('data', function(obj) {
+    if (obj.description) {
+      cubeResult.description = obj.description;
+    } else {
+      cubeResult.facets.push(obj);
+    }
+
+  }).on('end', function() {
+    assert.equal(cubeResult.description.trim(), 'solid cube-20-5mm-wall    facet');
+    assert.equal(cubeResult.facets.length, 32);
+  });
+
+
 var binaryResult = { facets : [] };
 fs.createReadStream(__dirname + '/binary/ship.stl')
   .pipe(stl.createParseStream())
@@ -56,7 +73,7 @@ fs.createReadStream(__dirname + '/binary/ship.stl')
     }
 
   }).on('end', function() {
-    assert.deepEqual(binaryResult, binaryArray);
+    assert.deepEqual(binaryResult.verts, binaryArray.verts);
   });
 
 

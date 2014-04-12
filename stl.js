@@ -159,23 +159,32 @@ module.exports = {
     var binaryMode = false;
     var facetCount = 0;
     var facets = [];
-    var destription = '';
+    var description = null;
     var currentFacet;
+    var asciiValid = false;
     var ended = false;
 
     var stream = fsm({
-      init : fsm.want(80, function readBinaryHeader(data) {
-        if (data.toString().toLowerCase().indexOf('solid') > -1) {
+      init : fsm.want(84, function readBinaryHeader(data) {
+        var dataString = data.toString();
+
+        if (dataString.toLowerCase().indexOf('solid') > -1) {
+          facetCount = data.readUInt32LE(80);
           this.change('ascii');
-          return 0;
         } else {
-          description = data.toString();
-          var nullTerm = description.indexOf('\u0000');
-          if (nullTerm > -1) {
-            description = description.substr(0, nullTerm-1);
-          }
-          this.change('count')
+          this.change('binary');
         }
+
+        return 0;
+      }),
+
+      binary : fsm.want(80, function(data) {
+        description = data.toString();
+        var nullTerm = description.indexOf('\u0000');
+        if (nullTerm > -1) {
+          description = description.substr(0, nullTerm-1);
+        }
+        this.change('count');
       }),
 
       count : fsm.want(4, function(data) {
@@ -238,7 +247,12 @@ module.exports = {
 
         var inFacet = false;
         var facet;
+        var that = this;
         splitter.on('data', function(data) {
+          if (!data.trim().length) {
+            return;
+          }
+
           if (data.indexOf('solid') > -1) {
             stream.queue({
               description : data.trim().split(' ').slice(1).join(' ')
@@ -249,9 +263,11 @@ module.exports = {
             stream.queue(facet);
             facet = null
           } else if (data.indexOf('facet') > -1) {
-            var normal = data.replace(/ +/g, ' ').trim().split(' ').slice(2).map(function(v) {
-              return parseFloat(v);
-            });
+            // This is not fool proof, but far better than
+            // "OH LOOK I NAMED MY STL 'solid'" *sigh*
+
+            asciiValid = true;
+            var normal = data.replace(/ +/g, ' ').trim().split(' ').slice(2).map(parseFloat);
 
             facet = {
               normal : normal,
@@ -259,32 +275,47 @@ module.exports = {
             };
 
           } else if (data.indexOf('vertex') > -1) {
-            var coords = data.replace(/ +/g, ' ').trim().split(' ').slice(1).map(function(v) {
-              return parseFloat(v);
-            });
+            var coords = data.replace(/ +/g, ' ').trim().split(' ').slice(1).map(parseFloat);
             facet.verts.push(coords);
+          } else if (!asciiValid) {
+            that.mode('binary');
           }
         });
 
+        stream.originalWrite = stream.write;
 
-        stream.write = function (data) {
-          splitter.write(data);
-          return !stream.paused
-        };
-
-
-        stream.write(pending);
+        splitter.write(pending);
         ended && stream.end();
-        return pending.length;
+
+        // Returning false here buffers the data.
+        // If we are not "sure" this is an ascii stl file then
+        // we need to continue buffering
+
+        return (asciiValid) ? pending.length : false;
       }
 
     }, function() {
-
     });
 
-    stream.on('end', function() {
-      ended = true;
-    });
+    stream.originalEnd = stream.end;
+    stream.end = function(d) {
+
+      var mode = stream.fsm.mode();
+      var cache = stream.fsm.cache();
+      if (mode === 'ascii' && !asciiValid && cache) {
+        // this is a binary file that has the description: "solid ..."
+        // send the complete file through binary mode
+        stream.fsm.change('binary');
+
+        // trigger a write since we have the entire file buffered in memory
+        stream.fsm();
+
+        stream.originalEnd();
+      } else {
+        ended = true;
+        stream.originalEnd();
+      }
+    };
 
     return stream;
   }
