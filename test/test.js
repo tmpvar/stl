@@ -117,3 +117,8 @@ fs.createReadStream(__dirname + '/binary/shark.stl')
     assert.deepEqual(sharkResult, syncSharkResult);
   });
 
+fs.createReadStream(__dirname + '/ascii/effector_base.stl')
+  .pipe(stl.createParseStream());
+
+
+
