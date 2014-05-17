@@ -175,6 +175,7 @@ module.exports = {
     var currentFacet;
     var asciiValid = false;
     var ended = false;
+    var splitter = null;
 
     var stream = fsm({
       init : fsm.want(84, function readBinaryHeader(data) {
@@ -254,51 +255,53 @@ module.exports = {
       }),
 
       ascii : function(pending) {
-        var splitter = split();
+        if (!splitter) {
+          splitter = split();
 
-        stream.on('end', function() {
-          splitter.end();
-        });
+          stream.on('end', function() {
+            splitter.end();
+          });
 
-        var inFacet = false;
-        var facet;
-        var that = this;
-        splitter.on('data', function(data) {
-          if (!data.trim().length) {
-            return;
-          }
+          var inFacet = false;
+          var facet;
+          var that = this;
+          splitter.on('data', function(data) {
+            if (!data.trim().length) {
+              return;
+            }
 
-          if (data.indexOf('solid') > -1) {
-            stream.queue({
-              description : data.trim().split(' ').slice(1).join(' ')
-            });
+            if (data.indexOf('solid') > -1) {
+              stream.queue({
+                description : data.trim().split(' ').slice(1).join(' ')
+              });
 
-          } else if (data.indexOf('endfacet') > -1) {
-            inFacet = false;
-            stream.queue(facet);
-            facet = null
-          } else if (data.indexOf('facet') > -1) {
-            // This is not fool proof, but far better than
-            // "OH LOOK I NAMED MY STL 'solid'" *sigh*
+            } else if (data.indexOf('endfacet') > -1) {
+              inFacet = false;
+              stream.queue(facet);
+              facet = null
+            } else if (data.indexOf('facet') > -1) {
+              // This is not fool proof, but far better than
+              // "OH LOOK I NAMED MY STL 'solid'" *sigh*
 
-            asciiValid = true;
-            var normal = data.replace(/ +/g, ' ').trim().split(' ').slice(2).map(parseFloat);
+              asciiValid = true;
+              var normal = data.replace(/ +/g, ' ').trim().split(' ').slice(2).map(parseFloat);
 
-            facet = {
-              normal : normal,
-              verts : [],
-              attributeByteCount: 0
-            };
+              facet = {
+                normal : normal,
+                verts : [],
+                attributeByteCount: 0
+              };
 
-          } else if (data.indexOf('vertex') > -1) {
-            var coords = data.replace(/ +/g, ' ').trim().split(' ').slice(1).map(parseFloat);
-            facet.verts.push(coords);
-          } else if (!asciiValid) {
-            that.mode('binary');
-          }
-        });
+            } else if (data.indexOf('vertex') > -1) {
+              var coords = data.replace(/ +/g, ' ').trim().split(' ').slice(1).map(parseFloat);
+              facet.verts.push(coords);
+            } else if (!asciiValid) {
+              that.mode('binary');
+            }
+          });
 
-        stream.originalWrite = stream.write;
+          stream.originalWrite = stream.write;
+        }
 
         splitter.write(pending);
         ended && stream.end();
