@@ -21,8 +21,9 @@
   "license": "MIT",
   "readmeFilename": "README.md",
   "dependencies": {
+    "split": "^0.3.0",
     "stream-fsm": "^0.3.1",
-    "split": "^0.3.0"
+    "triangle-normal": "0.0.0"
   },
   "devDependencies": {
     "tape": "^2.13.4"

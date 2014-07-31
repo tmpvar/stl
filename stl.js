@@ -1,8 +1,9 @@
 var fsm = require('stream-fsm');
 var split = require('split');
 var Transform = require('stream').Transform;
+var normalize = require('triangle-normal');
 
-var trim = function(a) {
+function trim(a) {
   var nullTerm = a.indexOf('\u0000');
   if (nullTerm > -1) {
     a = a.substr(0, nullTerm-1);
@@ -10,10 +11,20 @@ var trim = function(a) {
   return a.trim();
 };
 
+function computeNormal(facet) {
+  var v = facet.verts;
+  return normalize(
+    v[0][0], v[0][1], v[0][2],
+    v[1][0], v[1][1], v[1][2],
+    v[2][0], v[2][1], v[2][2]
+  );
+}
+
 module.exports = {
 
   // `stl` may be binary or ascii
   toObject : function(stl) {
+
     var ret = {};
 
     var facets = [];
@@ -43,29 +54,38 @@ module.exports = {
 
 
           if (line.indexOf('endfacet') > -1) {
+            if (!facet.normal) {
+              var v = facet.verts
+              facet.normal = computeNormal(facet)
+            }
             facets.push(facet);
           } else if (line.indexOf('facet') > -1) {
             facet = {
-              normal : [],
+              normal : null,
               verts : [],
               attributeByteCount : 0
             };
           }
 
-          if (line.indexOf('normal') > -1) {
-            var parts = line.split(' ');
-            facet.normal.unshift(parseFloat(parts.pop()));
-            facet.normal.unshift(parseFloat(parts.pop()));
-            facet.normal.unshift(parseFloat(parts.pop()));
-          }
+          if (facet) {
+            if (line.indexOf('normal') > -1) {
+              var nparts = line.split(' ');
+              facet.normal = [
+                parseFloat(nparts[2]),
+                parseFloat(nparts[3]),
+                parseFloat(nparts[4]),
+              ];
+            }
 
-          if (line.indexOf('vertex') > -1) {
-            var parts = line.split(' ');
-            var vert = [];
-            vert.unshift(parseFloat(parts.pop()));
-            vert.unshift(parseFloat(parts.pop()));
-            vert.unshift(parseFloat(parts.pop()));
-            facet.verts.push(vert);
+            if (line.indexOf('vertex') > -1) {
+              var vparts = line.split(' ');
+              var vert = [
+                parseFloat(vparts[1]),
+                parseFloat(vparts[2]),
+                parseFloat(vparts[3])
+              ];
+              facet.verts.push(vert);
+            }
           }
         });
       }
@@ -154,6 +174,10 @@ module.exports = {
       };
 
       obj.facets.forEach(function(facet) {
+        if (!facet.normal) {
+          facet.normal = computeNormal(facet);
+        }
+
         facet.normal.forEach(write);
 
         facet.verts.forEach(function(vert) {

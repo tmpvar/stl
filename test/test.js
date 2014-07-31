@@ -147,10 +147,9 @@ test('stl.fromObject without normals (ascii)', function(t) {
   };
 
   var r = stl.fromObject(o);
-
   var o2 = stl.toObject(r);
-  console.log(o2);
 
+  t.deepEqual(o2.facets[0].normal, [0, 0, 1]);
 
   t.end();
 });
@@ -171,7 +170,6 @@ test('stl.fromObject without normals (binary)', function(t) {
   };
 
   var r = stl.fromObject(o, true);
-
   var o2 = stl.toObject(r);
 
   t.deepEqual(o2.facets[0].normal, [0, 0, 1]);
