@@ -20,103 +20,33 @@ function computeNormal(facet) {
   );
 }
 
+function exp(a) {
+  return a.toExponential();
+}
+
 module.exports = {
 
   // `stl` may be binary or ascii
   toObject : function(stl) {
 
-    var ret = {};
+    var ret = {
+      description: '',
+      facets : []
+    };
 
-    var facets = [];
-    var binary = false;
-    var count = 0;
-    if (stl.readUInt32LE) {
-      count = stl.readUInt32LE(80);
-      binary = (84 + count*12*4 + count*2) === stl.length;
-    }
-
-    if (!binary) {
-      var stlString = stl.toString();
-      if (stlString.indexOf && stlString.indexOf('solid') > -1) {
-        stlString = stlString.replace(/\t/g, ' ');
-
-        var lines = stlString.split('\n');
-        var facet, loop;
-
-        lines.forEach(function(line) {
-          line = line.trim();
-
-          if (line.indexOf('solid') > -1 && line.indexOf('endsolid') < 0) {
-            ret.description = trim(line.replace(/ *solid */,''));
-          } else {
-            line = line.replace(/  /g, ' ');
-          }
-
-
-          if (line.indexOf('endfacet') > -1) {
-            if (!facet.normal) {
-              var v = facet.verts
-              facet.normal = computeNormal(facet)
-            }
-            facets.push(facet);
-          } else if (line.indexOf('facet') > -1) {
-            facet = {
-              normal : null,
-              verts : [],
-              attributeByteCount : 0
-            };
-          }
-
-          if (facet) {
-            if (line.indexOf('normal') > -1) {
-              var nparts = line.split(' ');
-              facet.normal = [
-                parseFloat(nparts[2]),
-                parseFloat(nparts[3]),
-                parseFloat(nparts[4]),
-              ];
-            }
-
-            if (line.indexOf('vertex') > -1) {
-              var vparts = line.split(' ');
-              var vert = [
-                parseFloat(vparts[1]),
-                parseFloat(vparts[2]),
-                parseFloat(vparts[3])
-              ];
-              facet.verts.push(vert);
-            }
-          }
-        });
+    var s = this.createParseStream();
+    s.on('data', function(d) {
+      if (!d.verts) {
+        if (!ret.description) {
+          ret.description = d.description;
+        }
+      } else {
+        ret.facets.push(d);
       }
-    // Binary mode
-    } else {
-      ret.description = trim(stl.toString('ascii', 0, 80));
+    });
+    s.write(!Buffer.isBuffer(stl) ? new Buffer(stl) : stl);
+    s.end();
 
-      var offset = 84;
-
-      var float = function() {
-        var ret = stl.readFloatLE(offset);
-        offset+=4;
-        return ret;
-      }
-
-      for (var i=0; i<count; i++) {
-        facets.push({
-          normal: [float(), float(), float()],
-          verts: [
-            [float(), float(), float()],
-            [float(), float(), float()],
-            [float(), float(), float()]
-          ],
-          attributeByteCount : stl.readUInt16LE(offset)
-        });
-
-        offset+=2; // Clear off the attribute byte count
-      }
-    }
-
-    ret.facets = facets;
     return ret;
   },
 
@@ -130,30 +60,27 @@ module.exports = {
         'solid ' + obj.description.trim()
       ];
 
-      obj.facets.forEach(function(facet) {
-        if (facet.normal) {
-          var exponential = []
-          facet.normal.forEach(function(a) {
-            exponential.push(a.toExponential());
-          });
+      var fl = obj.facets.length;
 
-          str.push('  facet normal ' + exponential.join(' '));
-        } else {
-          str.push('  facet');
-        }
+      for (var j = 0; j<fl; j++) {
+        var facet = obj.facets[j];
+        var n = facet.normal || computeNormal(facet);
 
-        str.push('    outer loop')
-        facet.verts.forEach(function(vert) {
-          var exponential = []
-          vert.forEach(function(a) {
-            exponential.push(a.toExponential());
-          });
-          str.push('      vertex ' + exponential.join(' '))
-        });
+        str.push('  facet normal ' + [
+          exp(n[0]), exp(n[1]), exp(n[2])
+        ].join(' '));
+
+        str.push('    outer loop');
+        var v = facet.verts;
+
+        var p = '      vertex ';
+        str.push(p + [exp(v[0][0]), exp(v[0][1]), exp(v[0][2])].join(' '));
+        str.push(p + [exp(v[1][0]), exp(v[1][1]), exp(v[1][2])].join(' '));
+        str.push(p + [exp(v[2][0]), exp(v[2][1]), exp(v[2][2])].join(' '));
 
         str.push('    endloop');
         str.push('  endfacet');
-      });
+      }
 
       str.push('endsolid');
       return str.join('\n');
@@ -173,20 +100,26 @@ module.exports = {
         offset+=4;
       };
 
-      obj.facets.forEach(function(facet) {
-        if (!facet.normal) {
-          facet.normal = computeNormal(facet);
+      var facetCount = obj.facets.length;
+      for (var j = 0; j<facetCount; j++) {
+        var facet = obj.facets[j];
+        var n = facet.normal || computeNormal(facet);
+
+        write(n[0]);
+        write(n[1]);
+        write(n[2]);
+
+        var l = facet.verts.length;
+        for (var i = 0; i<l; i++) {
+          var vert = facet.verts[i];
+          write(vert[0]);
+          write(vert[1]);
+          write(vert[2]);
         }
-
-        facet.normal.forEach(write);
-
-        facet.verts.forEach(function(vert) {
-          vert.forEach(write);
-        });
 
         ret.writeUInt16LE(facet.attributeByteCount || 0, offset);
         offset+=2;
-      });
+      }
       return ret;
     }
   },
@@ -300,6 +233,9 @@ module.exports = {
               });
 
             } else if (data.indexOf('endfacet') > -1) {
+              if (!facet.normal.length) {
+                // facet.normal = computeNormal(facet);
+              }
               inFacet = false;
               stream.queue(facet);
               facet = null
