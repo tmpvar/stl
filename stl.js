@@ -149,14 +149,7 @@ module.exports = {
       }),
 
       binary : fsm.want(80, function(data) {
-        description = data.toString();
-        var nullTerm = description.indexOf('\u0000');
-        if (nullTerm > -1) {
-          description = description.substr(0, nullTerm-1);
-        }
-
-        description = description.trim();
-
+        description = trim(data.toString());
         this.change('count');
       }),
 
