@@ -18,32 +18,27 @@ function compareAscii(a, b) {
 var binarySTL = fs.readFileSync(__dirname + '/binary/ship.stl');
 var basicAsciiSTL = fs.readFileSync(__dirname + '/ascii/tri.stl').toString();
 var asciiSTL = fs.readFileSync(__dirname + '/ascii/teapot.stl').toString();
-
-
-// ASCII
-var array = stl.toObject(asciiSTL);
-var basicarray = stl.toObject(basicAsciiSTL);
-
-// BINARY
-var binaryArray = stl.toObject(binarySTL);
-var binary = stl.fromObject(binaryArray, true);
-var syncSharkResult = stl.toObject(fs.readFileSync(__dirname + '/binary/shark.stl'));
-var cubeBuffer = fs.readFileSync(__dirname + '/binary/cube-20mm-with-hole.stl');
-
+var sharkSTL = fs.readFileSync(__dirname + '/binary/shark.stl');
+var cubeSTL = fs.readFileSync(__dirname + '/binary/cube-20mm-with-hole.stl');
 
 
 test('ascii in and out', function(t) {
+  var array = stl.toObject(asciiSTL);
   compareAscii(stl.fromObject(array), asciiSTL);
   t.end();
 });
 
 test('binary in and out', function(t) {
+  var binaryArray = stl.toObject(binarySTL);
+  var binary = stl.fromObject(binaryArray, true);
+
   t.ok(binarySTL.length === binary.length);
   t.deepEqual(binary.slice(80), binarySTL.slice(80));
   t.end();
 });
 
 test('binary cube with solid in name', function(t) {
+
   var cubeResult = { description : null, facets: [] }
   fs.createReadStream(__dirname + '/binary/cube-20mm-with-hole.stl')
     .pipe(stl.createParseStream())
@@ -60,18 +55,21 @@ test('binary cube with solid in name', function(t) {
 
       var bufferToObjectToStringToObject =  stl.toObject(
         stl.fromObject(
-          stl.toObject(cubeBuffer), false
+          stl.toObject(cubeSTL), false
         )
       );
 
       var cubeJSON = JSON.stringify(cubeResult);
-      t.equal(cubeJSON, JSON.stringify(stl.toObject(cubeBuffer)));
+      t.equal(cubeJSON, JSON.stringify(stl.toObject(cubeSTL)));
       t.equal(cubeJSON, JSON.stringify(bufferToObjectToStringToObject));
       t.end();
     });
 });
 
 test('ship.stl', function(t) {
+
+  var binarySTL = fs.readFileSync(__dirname + '/binary/ship.stl');
+  var binaryArray = stl.toObject(binarySTL);
 
   var binaryResult = { facets : [] };
   fs.createReadStream(__dirname + '/binary/ship.stl')
@@ -90,6 +88,7 @@ test('ship.stl', function(t) {
 });
 
 test('tri.stl', function(t) {
+  var basicarray = stl.toObject(basicAsciiSTL);
 
   var asciiResult = { description: null, facets : [] };
   fs.createReadStream(__dirname + '/ascii/tri.stl')
@@ -108,6 +107,8 @@ test('tri.stl', function(t) {
 });
 
 test('shark.stl', function(t) {
+  var syncSharkResult = stl.toObject(sharkSTL);
+
   var sharkResult = { description : null, facets: [] }
   fs.createReadStream(__dirname + '/binary/shark.stl')
     .pipe(stl.createParseStream())
