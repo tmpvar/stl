@@ -23,5 +23,8 @@
   "dependencies": {
     "stream-fsm": "^0.3.1",
     "split": "^0.3.0"
+  },
+  "devDependencies": {
+    "tape": "^2.13.4"
   }
 }
