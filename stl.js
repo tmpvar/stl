@@ -25,6 +25,8 @@ function exp(a) {
 }
 
 module.exports = {
+  facetNormal : computeNormal,
+
 
   // `stl` may be binary or ascii
   toObject : function(stl) {

@@ -177,3 +177,17 @@ test('stl.fromObject without normals (binary)', function(t) {
 
   t.end();
 });
+
+test('expose facetNormal', function(t) {
+
+  var normal = stl.facetNormal({
+    verts : [
+      [1, 1, 0],
+      [0, 0, 0],
+      [1, 0, 0]
+    ]
+  });
+
+  t.deepEqual(normal, [0, 0, 1]);
+  t.end();
+});
