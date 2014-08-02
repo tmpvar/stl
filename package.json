@@ -1,6 +1,6 @@
 {
   "name": "stl",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "STL to Array of verts and vice versa",
   "main": "stl.js",
   "scripts": {
