@@ -1,6 +1,5 @@
 var fsm = require('stream-fsm');
 var split = require('split');
-var Transform = require('stream').Transform;
 var normalize = require('triangle-normal');
 
 function trim(a) {
