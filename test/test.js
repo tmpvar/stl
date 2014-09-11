@@ -191,3 +191,12 @@ test('expose facetNormal', function(t) {
   t.deepEqual(normal, [0, 0, 1]);
   t.end();
 });
+
+test('binary cube.stl (broken trim)', function(t) {
+  fs.createReadStream(__dirname + '/binary/cube.stl')
+    .pipe(stl.createParseStream()).once('data', function(data) {
+      t.equal(data.description, 'cube.stl');
+      t.end();
+    });
+});
+

@@ -5,7 +5,7 @@ var normalize = require('triangle-normal');
 function trim(a) {
   var nullTerm = a.indexOf('\u0000');
   if (nullTerm > -1) {
-    a = a.substr(0, nullTerm-1);
+    a = a.substr(0, nullTerm);
   }
   return a.trim();
 };
