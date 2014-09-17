@@ -25,6 +25,9 @@
     "stream-fsm": "^0.3.1",
     "triangle-normal": "0.0.0"
   },
+  "bin" : {
+    "bin" : "bin/stl-cli.js"
+  },
   "devDependencies": {
     "tape": "^2.13.4"
   }
