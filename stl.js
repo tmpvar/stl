@@ -221,9 +221,9 @@ module.exports = {
               return;
             }
 
-            if (data.indexOf('solid') > -1) {
+            if (data.match(/^\s*solid/)) {
               stream.queue({
-                description : data.trim().split(' ').slice(1).join(' ')
+                description : data.match(/solid\s+([^\0]*)/)[1].trim()
               });
 
             } else if (data.indexOf('endfacet') > -1) {
