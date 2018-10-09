@@ -200,3 +200,10 @@ test('binary cube.stl (broken trim)', function(t) {
     });
 });
 
+test('solid-ship.stl', function(t) {
+  fs.createReadStream(__dirname + '/binary/solid-ship.stl')
+    .pipe(stl.createParseStream()).once('data', function(data) {
+      t.equal(data.description, 'solid ship.stl');
+      t.end();
+    });
+});
