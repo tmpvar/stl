@@ -208,6 +208,15 @@ module.exports = {
       ascii : function(pending) {
         if (!splitter) {
           splitter = split();
+          splitter.emissionQueue = []
+
+          function emit(v) {
+            if (asciiValid) {
+              stream.queue(v)
+            } else {
+              splitter.emissionQueue.push(v)
+            }
+          }
 
           stream.on('end', function() {
             splitter.end();
@@ -222,7 +231,7 @@ module.exports = {
             }
 
             if (data.indexOf('solid') > -1) {
-              stream.queue({
+              emit({
                 description : data.trim().split(' ').slice(1).join(' ')
               });
 
@@ -231,13 +240,19 @@ module.exports = {
                 // facet.normal = computeNormal(facet);
               }
               inFacet = false;
-              stream.queue(facet);
+              emit(facet);
               facet = null
             } else if (data.indexOf('facet') > -1) {
               // This is not fool proof, but far better than
               // "OH LOOK I NAMED MY STL 'solid'" *sigh*
 
               asciiValid = true;
+
+              // emit all of the pending ascii events
+              while(splitter.emissionQueue.length) {
+                stream.queue(splitter.emissionQueue.shift())
+              }
+
               var normal = data.replace(/ +/g, ' ').trim().split(' ').slice(2).map(parseFloat);
 
               facet = {
@@ -250,6 +265,7 @@ module.exports = {
               var coords = data.replace(/ +/g, ' ').trim().split(' ').slice(1).map(parseFloat);
               facet.verts.push(coords);
             } else if (!asciiValid) {
+
               that.mode('binary');
             }
           });
