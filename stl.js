@@ -58,7 +58,7 @@ module.exports = {
 
     if (!binary) {
       var str = [
-        'solid ' + obj.description.trim()
+        'solid ' + (obj.description || '').trim()
       ];
 
       var fl = obj.facets.length;
