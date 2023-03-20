@@ -45,7 +45,7 @@ module.exports = {
         ret.facets.push(d);
       }
     });
-    s.write(!Buffer.isBuffer(stl) ? new Buffer(stl) : stl);
+    s.write(!Buffer.isBuffer(stl) ? Buffer.from(stl) : stl);
     s.end();
 
     return ret;
@@ -89,7 +89,7 @@ module.exports = {
 
       var count = obj.facets.length;
 
-      var ret = new Buffer(84 +  count*12*4 + count*2);
+      var ret = Buffer.alloc(84 +  count*12*4 + count*2);
       ret.fill(0, 0, 80);
       ret.write(obj.description || '');
       ret.writeUInt32LE(count, 80);
